@@ -8,23 +8,24 @@ import (
 	"time"
 )
 
+func videoHandler(w *watcher.Watcher) {
+	for {
+		select {
+		case event := <-w.Event:
+			fmt.Println(event)
+		case err := <-w.Error:
+			log.Println(err)
+		case <-w.Closed:
+			log.Println("Watcher closed")
+			return
+		}
+	}
+}
+
 func SetUpVideoWatcher(dirs ...string) *watcher.Watcher {
 	w := watcher.New()
-	w.SetMaxEvents(1)
 	w.FilterOps(watcher.Create, watcher.Rename)
-	go func() {
-		for {
-			select {
-			case event := <-w.Event:
-				fmt.Println(event)
-			case err := <-w.Error:
-				log.Fatalln(err)
-			case <-w.Closed:
-				return
-			}
-		}
-	}()
-
+	go videoHandler(w)
 	for _, dir := range dirs {
 		// Watch test_folder recursively for changes.
 		if err := w.AddRecursive(dir); err != nil {
@@ -54,8 +55,6 @@ func DirAddHTTPHandler(w *watcher.Watcher) http.Handler {
 		if err := w.AddRecursive(path); err != nil {
 			log.Fatalln(err)
 		}
-
-		//out, err := exec.Command("find", path, "-name \"*.mp4\" -or -name \"*.mkv\"").Output()
-		fmt.Fprintln(rw, "Added path:", path)
+		fmt.Fprintln(rw, "Added dir:", path)
 	})
 }
