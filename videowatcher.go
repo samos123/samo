@@ -7,32 +7,39 @@ import (
 	"net/http"
 )
 
-func SetUpVideoWatcher(dirs ...string) *fsnotify.Watcher {
+type VideoWatcher struct {
+	*fsnotify.Watcher
+}
+
+func (watcher *VideoWatcher) ProcessEvents() {
+	for {
+		select {
+		case event := <-watcher.Events:
+			log.Println("event:", event)
+		case err := <-watcher.Errors:
+			log.Println("error:", err)
+		}
+	}
+}
+
+func NewVideoWatcher(dirs ...string) *VideoWatcher {
 	watcher, err := fsnotify.NewWatcher()
+	vw := &VideoWatcher{watcher}
 	if err != nil {
 		log.Fatal(err)
 	}
-	go func() {
-		for {
-			select {
-			case event := <-watcher.Events:
-				log.Println("event:", event)
-			case err := <-watcher.Errors:
-				log.Println("error:", err)
-			}
-		}
-	}()
+	go vw.ProcessEvents()
 
 	for _, dir := range dirs {
-		err = watcher.Add(dir)
+		err = vw.Add(dir)
 		if err != nil {
 			log.Fatal(err)
 		}
 	}
-	return watcher
+	return vw
 }
 
-func DirAddHTTPHandler(w *fsnotify.Watcher) http.Handler {
+func DirAddHTTPHandler(w *VideoWatcher) http.Handler {
 	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 		path := r.FormValue("path")
 		if err := w.Add(path); err != nil {
