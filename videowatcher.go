@@ -16,7 +16,7 @@ type VideoWatcher struct {
 
 func NewVideoWatcher(dirs ...string) *VideoWatcher {
 	watcher, err := fsnotify.NewWatcher()
-	vw := &VideoWatcher{watcher, []string{".mkv"}}
+	vw := &VideoWatcher{watcher, []string{".mkv", ".mp4", ".avi"}}
 	if err != nil {
 		log.Fatal(err)
 	}
